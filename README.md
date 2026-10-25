@@ -1,4 +1,4 @@
-# nodecg-race-broadcast
+# race-layout
 
 RaceTimeのレース情報とPlayer Managerのプレイヤー情報を利用する、RTAレース配信用のNodeCGバンドルです。
 配信設定と表示データの生成だけを担当し、プレイヤー管理・レース監視・SRC記録取得は外部バンドルに委譲します。
@@ -12,7 +12,7 @@ RaceTimeのレース情報とPlayer Managerのプレイヤー情報を利用す�
 - [RaceTime Integration](https://github.com/Nanahuse/racetime-integration) v0.8.0
 
 このバンドルは`player-manager`と`racetime-integration`の公開APIを利用します。
-両バンドルを同じNodeCG環境へ導入し、このリポジトリを`bundles/nodecg-race-broadcast`として配置してください。
+両バンドルを同じNodeCG環境へ導入し、このリポジトリを`bundles/race-layout`として配置してください。
 
 ## セットアップ
 
@@ -46,11 +46,11 @@ pnpm test
 
 | Graphic | URL | 用途 |
 | --- | --- | --- |
-| Race 4 | `/bundles/nodecg-race-broadcast/graphics/race-4.html` | 4人レース |
-| Race 6 | `/bundles/nodecg-race-broadcast/graphics/race-6.html` | 6人レース |
-| Participants | `/bundles/nodecg-race-broadcast/graphics/participants.html` | 全参加者 |
-| Leaderboard | `/bundles/nodecg-race-broadcast/graphics/leaderboard.html` | SRC Leaderboard |
-| Result | `/bundles/nodecg-race-broadcast/graphics/result.html` | レース結果 |
+| Race 4 | `/bundles/race-layout/graphics/race-4.html` | 4人レース |
+| Race 6 | `/bundles/race-layout/graphics/race-6.html` | 6人レース |
+| Participants | `/bundles/race-layout/graphics/participants.html` | 全参加者 |
+| Leaderboard | `/bundles/race-layout/graphics/leaderboard.html` | SRC Leaderboard |
+| Result | `/bundles/race-layout/graphics/result.html` | レース結果 |
 
 すべて1920×1080です。Race 4 / Race 6は透明背景で、映像領域には何も描画しません。
 

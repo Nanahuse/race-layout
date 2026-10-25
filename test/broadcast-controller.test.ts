@@ -80,7 +80,7 @@ class FakeNodeCG {
 		const namespace =
 			typeof namespaceOrOptions === "string"
 				? namespaceOrOptions
-				: "nodecg-race-broadcast";
+				: "race-layout";
 		const options =
 			typeof namespaceOrOptions === "string"
 				? maybeOptions
@@ -399,15 +399,11 @@ describe("BroadcastController", () => {
 		expect(firstResponse.ok).toBe(true);
 		await flush();
 
-		const storedConfig = fake.get(
-			"nodecg-race-broadcast",
-			REPLICANTS.broadcastConfig,
-		)?.value as BroadcastConfig;
+		const storedConfig = fake.get("race-layout", REPLICANTS.broadcastConfig)
+			?.value as BroadcastConfig;
 		expect(storedConfig.revision).toBe(1);
-		const presentation = fake.get(
-			"nodecg-race-broadcast",
-			REPLICANTS.racePresentation,
-		)?.value as RacePresentation;
+		const presentation = fake.get("race-layout", REPLICANTS.racePresentation)
+			?.value as RacePresentation;
 		expect(presentation.players[0]?.name).toBe("PM One");
 		expect(presentation.players[0]?.pb).toEqual({
 			time: "1:00.000",
@@ -482,10 +478,8 @@ describe("BroadcastController", () => {
 			ok: false,
 			code: "race_unavailable",
 		});
-		const storedConfig = fake.get(
-			"nodecg-race-broadcast",
-			REPLICANTS.broadcastConfig,
-		)?.value as BroadcastConfig;
+		const storedConfig = fake.get("race-layout", REPLICANTS.broadcastConfig)
+			?.value as BroadcastConfig;
 		expect(storedConfig.revision).toBe(1);
 		expect(storedConfig.raceUrl).toBe("https://racetime.gg/game/race-1");
 	});

@@ -1,5 +1,5 @@
 {
-	"name": "nodecg-race-broadcast",
+	"name": "race-layout",
 	"version": "0.1.0",
 	"private": true,
 	"description": "RaceTime RTA race broadcast graphics for NodeCG",
