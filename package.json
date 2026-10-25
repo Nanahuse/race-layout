@@ -4,7 +4,7 @@
 	"private": true,
 	"description": "RaceTime RTA race broadcast graphics for NodeCG",
 	"license": "Apache-2.0",
-	"packageManager": "pnpm@12.4.0",
+	"packageManager": "pnpm@12.9.1",
 	"scripts": {
 		"start": "nodecg start",
 		"build": "vite build",

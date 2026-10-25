@@ -7,7 +7,7 @@ RaceTimeのレース情報とPlayer Managerのプレイヤー情報を利用す�
 
 - NodeCG 2.8
 - Node.js 24
-- pnpm 12.4
+- pnpm 12.9.1
 - [Player Manager](https://github.com/Nanahuse/player-manager) v3.1.0
 - [RaceTime Integration](https://github.com/Nanahuse/racetime-integration) v0.8.0
 
