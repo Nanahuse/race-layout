@@ -2,6 +2,8 @@ import {
 	APPLY_CONFIG_MESSAGE,
 	type ApplyConfigRequest,
 	type ApplyConfigResponse,
+	LIST_PLAYERS_MESSAGE,
+	type ListPlayersResponse,
 	PREVIEW_RACE_MESSAGE,
 	type PreviewRaceRequest,
 	type PreviewRaceResponse,
@@ -47,3 +49,6 @@ export const reconnectRace = (): Promise<ReconnectRaceResponse> =>
 	withTimeout(
 		nodecg.sendMessage<ReconnectRaceResponse>(RECONNECT_RACE_MESSAGE),
 	);
+
+export const listPlayers = (): Promise<ListPlayersResponse> =>
+	withTimeout(nodecg.sendMessage<ListPlayersResponse>(LIST_PLAYERS_MESSAGE));

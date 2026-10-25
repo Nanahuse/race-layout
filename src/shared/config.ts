@@ -6,7 +6,6 @@ import {
 
 const MAX_NAME_LENGTH = 200;
 const MAX_COMMENTATORS = 20;
-const MAX_COMMENTATOR_LENGTH = 100;
 const MAX_MAPPING_KEY_LENGTH = 500;
 const MAX_USER_ID_LENGTH = 200;
 
@@ -15,7 +14,7 @@ type RawConfig = {
 	slots?: unknown;
 	eventName?: unknown;
 	categoryName?: unknown;
-	commentators?: unknown;
+	commentatorIds?: unknown;
 	mappingKey?: unknown;
 	revision?: unknown;
 };
@@ -85,21 +84,21 @@ export const validateBroadcastConfigDraft = (
 		MAX_NAME_LENGTH,
 	);
 
-	if (!Array.isArray(raw.commentators))
-		throw new Error("commentators must be an array");
-	if (raw.commentators.length > MAX_COMMENTATORS)
+	if (!Array.isArray(raw.commentatorIds))
+		throw new Error("commentatorIds must be an array");
+	if (raw.commentatorIds.length > MAX_COMMENTATORS)
 		throw new Error(
-			`commentators must contain at most ${MAX_COMMENTATORS} entries`,
+			`commentatorIds must contain at most ${MAX_COMMENTATORS} entries`,
 		);
-	const commentators: string[] = [];
-	for (const [index, value] of raw.commentators.entries()) {
+	const commentatorIds: string[] = [];
+	for (const [index, value] of raw.commentatorIds.entries()) {
 		if (typeof value !== "string")
-			throw new Error(`commentators[${index}] must be a string`);
+			throw new Error(`commentatorIds[${index}] must be a string`);
 		const trimmed = value.trim();
 		if (trimmed === "") continue;
-		if (trimmed.length > MAX_COMMENTATOR_LENGTH)
-			throw new Error(`commentators[${index}] is too long`);
-		if (!commentators.includes(trimmed)) commentators.push(trimmed);
+		if (trimmed.length > MAX_USER_ID_LENGTH)
+			throw new Error(`commentatorIds[${index}] is too long`);
+		if (!commentatorIds.includes(trimmed)) commentatorIds.push(trimmed);
 	}
 
 	let mappingKey: string | null = null;
@@ -117,7 +116,7 @@ export const validateBroadcastConfigDraft = (
 		slots,
 		eventName,
 		categoryName,
-		commentators,
+		commentatorIds,
 		mappingKey,
 	};
 };

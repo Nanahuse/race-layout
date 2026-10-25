@@ -8,6 +8,8 @@ import {BroadcastController} from "../src/extension/broadcast-controller";
 import {
 	APPLY_CONFIG_MESSAGE,
 	type ApplyConfigResponse,
+	LIST_PLAYERS_MESSAGE,
+	type ListPlayersResponse,
 } from "../src/shared/messages";
 import {REPLICANTS} from "../src/shared/replicants";
 import type {BroadcastConfig, RacePresentation} from "../src/shared/types";
@@ -375,7 +377,7 @@ const configDraft = (raceUrl: string) => ({
 	slots: ["rt-1", null, null, null, null, null],
 	eventName: "",
 	categoryName: "",
-	commentators: [],
+	commentatorIds: [],
 	mappingKey: "mapping-1",
 });
 
@@ -435,6 +437,53 @@ describe("BroadcastController", () => {
 		expect(conflict).toMatchObject({
 			ok: false,
 			code: "revision_conflict",
+		});
+	});
+
+	it("serializes concurrent applies with the same revision", async () => {
+		const fake = createFakeNodeCG();
+		const controller = new BroadcastController(
+			fake as unknown as ConstructorParameters<typeof BroadcastController>[0],
+		);
+		await controller.start();
+		await flush();
+		const responses = await Promise.all([
+			invoke<ApplyConfigResponse>(fake, APPLY_CONFIG_MESSAGE, {
+				expectedRevision: 0,
+				config: configDraft("https://racetime.gg/game/race-1"),
+			}),
+			invoke<ApplyConfigResponse>(fake, APPLY_CONFIG_MESSAGE, {
+				expectedRevision: 0,
+				config: configDraft("https://racetime.gg/game/race-2"),
+			}),
+		]);
+		expect(responses.filter((response) => response.ok)).toHaveLength(1);
+		expect(
+			responses.filter(
+				(response) => !response.ok && response.code === "revision_conflict",
+			),
+		).toHaveLength(1);
+		expect(fake.watchCalls).toHaveLength(1);
+		const storedConfig = fake.get("race-layout", REPLICANTS.broadcastConfig)
+			?.value as BroadcastConfig;
+		expect(storedConfig.revision).toBe(1);
+	});
+
+	it("lists Player Manager players for commentator selection", async () => {
+		const fake = createFakeNodeCG();
+		const controller = new BroadcastController(
+			fake as unknown as ConstructorParameters<typeof BroadcastController>[0],
+		);
+		await controller.start();
+		await flush();
+		const response = await invoke<ListPlayersResponse>(
+			fake,
+			LIST_PLAYERS_MESSAGE,
+			undefined,
+		);
+		expect(response).toEqual({
+			ok: true,
+			players: [{playerId: "player-1", displayName: "PM One"}],
 		});
 	});
 

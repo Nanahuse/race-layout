@@ -4,9 +4,10 @@ import {
 	eventMessageName,
 	type Player,
 	type PlayerManagerAPI,
+	resolveDisplayName,
 } from "@nanahuse/player-manager-protocol";
 import type NodeCG from "@nodecg/types";
-import type {IntegrationState} from "../shared/types";
+import type {IntegrationState, PlayerOption} from "../shared/types";
 
 const RETRY_DELAY_MS = 15_000;
 
@@ -53,6 +54,17 @@ export class PlayerManagerAdapter {
 
 	getPlayer(playerId: string): Player | undefined {
 		return this.directory.get(playerId);
+	}
+
+	listPlayers(): PlayerOption[] {
+		return [...this.directory.values()]
+			.map((player) => ({
+				playerId: player.playerId,
+				displayName: resolveDisplayName(player),
+			}))
+			.sort((left, right) =>
+				left.displayName.localeCompare(right.displayName, "ja"),
+			);
 	}
 
 	getDirectoryRevision(): number {

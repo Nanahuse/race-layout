@@ -14,7 +14,7 @@ export const createDefaultBroadcastConfig = (): BroadcastConfig => ({
 	slots: Array.from({length: SLOT_COUNT}, () => null),
 	eventName: "",
 	categoryName: "",
-	commentators: [],
+	commentatorIds: [],
 	mappingKey: null,
 });
 

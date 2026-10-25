@@ -7,12 +7,14 @@ import type {
 	IntegrationState,
 	MappingOption,
 	ParticipantsPresentation,
+	PlayerOption,
 	PreviewRace,
 } from "../../../shared/types";
 import {useReplicant} from "../../hooks/use-replicant";
 import {render} from "../../render";
 import {
 	applyBroadcastConfig,
+	listPlayers,
 	reconnectRace,
 	refreshRecords,
 	previewRace as requestPreviewRace,
@@ -112,9 +114,39 @@ export const BroadcastControl = () => {
 	const [previewError, setPreviewError] = useState<string | null>(null);
 	const [previewLoading, setPreviewLoading] = useState(false);
 	const [previewVariant, setPreviewVariant] = useState<4 | 6>(4);
+	const [playerOptions, setPlayerOptions] = useState<PlayerOption[]>([]);
+	const [playerOptionsError, setPlayerOptionsError] = useState<string | null>(
+		null,
+	);
+	const [playerOptionsLoading, setPlayerOptionsLoading] = useState(false);
+	const [commentatorQuery, setCommentatorQuery] = useState("");
 	const baselineRef = useRef<BroadcastConfig | null>(null);
 	const configRef = useRef<BroadcastConfig | undefined>(undefined);
 	const initialPreviewRef = useRef<string | null>(null);
+	const previewRequestRef = useRef(0);
+
+	const loadPlayerOptions = useCallback(async () => {
+		setPlayerOptionsLoading(true);
+		try {
+			const response = await listPlayers();
+			if (!response.ok) {
+				setPlayerOptionsError(response.message);
+				return;
+			}
+			setPlayerOptions(response.players);
+			setPlayerOptionsError(null);
+		} catch (cause) {
+			setPlayerOptionsError(errorText(cause));
+		} finally {
+			setPlayerOptionsLoading(false);
+		}
+	}, []);
+
+	useEffect(() => {
+		if (status?.playerManager.state !== "ready") return;
+		if (playerOptions.length > 0) return;
+		void loadPlayerOptions();
+	}, [status?.playerManager.state, playerOptions.length, loadPlayerOptions]);
 
 	useEffect(() => {
 		if (!config) return;
@@ -139,15 +171,18 @@ export const BroadcastControl = () => {
 	}, [config, draft]);
 
 	const loadPreview = useCallback(async (url: string, adoptSlots: boolean) => {
+		const requestId = ++previewRequestRef.current;
 		const trimmed = url.trim();
 		if (!trimmed) {
 			setPreviewError("レースURLを入力してください。");
+			setPreviewLoading(false);
 			return;
 		}
 		setPreviewLoading(true);
 		setPreviewError(null);
 		try {
 			const response = await requestPreviewRace({url: trimmed});
+			if (requestId !== previewRequestRef.current) return;
 			if (!response.ok) {
 				setPreviewError(response.message);
 				return;
@@ -169,9 +204,10 @@ export const BroadcastControl = () => {
 						: current,
 				);
 		} catch (cause) {
+			if (requestId !== previewRequestRef.current) return;
 			setPreviewError(errorText(cause));
 		} finally {
-			setPreviewLoading(false);
+			if (requestId === previewRequestRef.current) setPreviewLoading(false);
 		}
 	}, []);
 
@@ -227,6 +263,21 @@ export const BroadcastControl = () => {
 		const slots = [...draft.slots];
 		slots[index] = userId || null;
 		updateDraft({slots});
+	};
+
+	const addCommentator = (playerId: string) => {
+		if (!draft || !playerId) return;
+		updateDraft({
+			commentatorIds: [...new Set([...draft.commentatorIds, playerId])],
+		});
+		setCommentatorQuery("");
+	};
+
+	const removeCommentator = (playerId: string) => {
+		if (!draft) return;
+		updateDraft({
+			commentatorIds: draft.commentatorIds.filter((id) => id !== playerId),
+		});
 	};
 
 	const apply = async () => {
@@ -327,6 +378,21 @@ export const BroadcastControl = () => {
 			: mappingOptions.length === 1
 				? `自動 (${mappingOptions[0]?.label ?? ""})`
 				: "Mappingを選択してください";
+	const selectedCommentators = draft.commentatorIds.map((playerId) => ({
+		playerId,
+		displayName:
+			playerOptions.find((option) => option.playerId === playerId)
+				?.displayName ?? playerId,
+	}));
+	const commentatorCandidates = playerOptions
+		.filter((option) => !draft.commentatorIds.includes(option.playerId))
+		.filter((option) => {
+			const query = commentatorQuery.trim().toLocaleLowerCase();
+			return (
+				query === "" || option.displayName.toLocaleLowerCase().includes(query)
+			);
+		})
+		.slice(0, 50);
 
 	return (
 		<div className='dashboard'>
@@ -659,26 +725,77 @@ export const BroadcastControl = () => {
 								}
 							/>
 						</label>
-						<label className='field field--wide'>
+						<div className='field field--wide'>
 							<span className='field__label'>Commentators</span>
-							<textarea
-								className='input textarea'
-								rows={3}
-								value={draft.commentators.join("\n")}
-								placeholder='1行に1名'
-								onChange={(event) =>
-									updateDraft({
-										commentators: event.target.value
-											.split("\n")
-											.map((value) => value.trim())
-											.filter(
-												(value, index, values) =>
-													value !== "" && values.indexOf(value) === index,
-											),
-									})
-								}
-							/>
-						</label>
+							{selectedCommentators.length > 0 ? (
+								<div className='chip-list'>
+									{selectedCommentators.map((commentator) => (
+										<span
+											className='chip'
+											key={commentator.playerId}
+										>
+											<span className='chip__label'>
+												{commentator.displayName}
+											</span>
+											<button
+												type='button'
+												className='chip__remove'
+												onClick={() => removeCommentator(commentator.playerId)}
+												aria-label={`${commentator.displayName}を削除`}
+											>
+												×
+											</button>
+										</span>
+									))}
+								</div>
+							) : (
+								<span className='field__hint'>
+									実況者はまだ選択されていません。
+								</span>
+							)}
+							<div className='commentator-picker'>
+								<input
+									className='input'
+									value={commentatorQuery}
+									placeholder='実況者を検索'
+									onChange={(event) => setCommentatorQuery(event.target.value)}
+								/>
+								<select
+									className='input'
+									value=''
+									onChange={(event) => addCommentator(event.target.value)}
+									disabled={
+										playerOptionsLoading || commentatorCandidates.length === 0
+									}
+								>
+									<option value=''>
+										{playerOptionsLoading
+											? "読み込み中…"
+											: commentatorCandidates.length > 0
+												? "Player Managerから実況者を追加"
+												: "候補がありません"}
+									</option>
+									{commentatorCandidates.map((option) => (
+										<option
+											value={option.playerId}
+											key={option.playerId}
+										>
+											{option.displayName}
+										</option>
+									))}
+								</select>
+							</div>
+							{playerOptionsError ? (
+								<span className='field__hint field__hint--error'>
+									{playerOptionsError}
+								</span>
+							) : null}
+							{status?.playerManager.state !== "ready" ? (
+								<span className='field__hint'>
+									Player Managerの準備ができていません。
+								</span>
+							) : null}
+						</div>
 						<label className='field'>
 							<span className='field__label'>SRC Mapping</span>
 							<select
@@ -716,7 +833,7 @@ export const BroadcastControl = () => {
 							<div className='config-summary'>
 								<span>Event: {draft.eventName || "(RaceTime)"}</span>
 								<span>Category: {draft.categoryName || "(RaceTime)"}</span>
-								<span>Commentators: {draft.commentators.length}</span>
+								<span>Commentators: {draft.commentatorIds.length}</span>
 								<span>
 									Mapping: {draft.mappingKey ? "選択済み" : "自動 / 未選択"}
 								</span>

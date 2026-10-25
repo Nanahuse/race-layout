@@ -25,6 +25,7 @@ import type {
 	ResultPresentation,
 	ResultStatus,
 } from "../shared/types";
+import {currentParticipants} from "./current-participants";
 import {formatElapsed, formatRaceStatus} from "./format";
 import type {RecordsSnapshot} from "./records-coordinator";
 
@@ -57,11 +58,11 @@ const buildLookups = (race: Race | null) => {
 	return {entrants, results};
 };
 
-const buildParticipantLookup = (raceState: RaceState | null) => {
-	const participants = new Map<string, Participant>();
-	for (const participant of raceState?.participants ?? [])
-		participants.set(participant.racetimeUserId, participant);
-	return participants;
+const buildParticipantLookup = (participants: Participant[]) => {
+	const lookup = new Map<string, Participant>();
+	for (const participant of participants)
+		lookup.set(participant.racetimeUserId, participant);
+	return lookup;
 };
 
 const displayName = (
@@ -110,6 +111,7 @@ const buildInfo = (
 	config: BroadcastConfig,
 	race: Race | null,
 	records: RecordsSnapshot,
+	getPlayer: (playerId: string) => Player | undefined,
 ): CommonInfoPresentation => {
 	const entries = records.leaderboard?.entries ?? [];
 	const top = entries.length
@@ -121,10 +123,14 @@ const buildInfo = (
 				.map((player) => player.displayName?.trim() || player.name)
 				.join(" & ")
 		: null;
+	const commentators = config.commentatorIds
+		.map((playerId) => getPlayer(playerId))
+		.map((player) => (player ? resolveDisplayName(player) : null))
+		.filter((name): name is string => Boolean(name));
 	return {
 		eventName: config.eventName || race?.name || "—",
 		categoryName: config.categoryName || race?.category.name || "—",
-		commentators: [...config.commentators],
+		commentators,
 		raceStatus: formatRaceStatus(race?.status),
 		record:
 			topTime && records.activeMapping
@@ -155,7 +161,7 @@ export class PresentationProjector {
 		const {config, raceState, records, getPlayer} = input;
 		const race = raceState?.race ?? null;
 		const {entrants, results} = buildLookups(race);
-		const participants = buildParticipantLookup(raceState);
+		const participants = buildParticipantLookup(currentParticipants(raceState));
 
 		const resolve = (userId: string) => {
 			const participant = participants.get(userId);
@@ -195,7 +201,7 @@ export class PresentationProjector {
 			return bar;
 		});
 
-		const info = buildInfo(config, race, records);
+		const info = buildInfo(config, race, records, getPlayer);
 
 		const participantEntries: ParticipantPresentation[] = (
 			race?.entrants ?? []

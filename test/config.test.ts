@@ -46,12 +46,12 @@ describe("broadcast config", () => {
 		const left = {
 			...draft(),
 			eventName: "  Event  ",
-			commentators: [" A ", "", "A"],
+			commentatorIds: [" player-1 ", "", "player-1"],
 		};
 		const right = {
 			...draft(),
 			eventName: "Event",
-			commentators: ["A"],
+			commentatorIds: ["player-1"],
 		};
 		expect(broadcastConfigsEqual(left, right)).toBe(true);
 	});

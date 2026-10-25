@@ -16,7 +16,7 @@ export const toDraft = (config: BroadcastConfig): BroadcastConfigDraft => ({
 	slots: [...config.slots],
 	eventName: config.eventName,
 	categoryName: config.categoryName,
-	commentators: [...config.commentators],
+	commentatorIds: [...config.commentatorIds],
 	mappingKey: config.mappingKey,
 });
 

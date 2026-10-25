@@ -210,7 +210,7 @@ export class RecordsCoordinator {
 				return;
 			}
 
-			const [leaderboardResponse, bestsResponse] = await Promise.all([
+			const [leaderboardOutcome, bestsOutcome] = await Promise.allSettled([
 				this.gateway.getSpeedrunLeaderboards(slug, goal, force),
 				context.playerIds.length > 0
 					? this.gateway.getSpeedrunPlayerBests(
@@ -223,64 +223,77 @@ export class RecordsCoordinator {
 			]);
 			if (!this.isCurrent(signature, generation)) return;
 
-			if (leaderboardResponse.status !== "resolved") {
-				this.fail(
-					leaderboardResponse.status === "unregistered"
-						? "RaceTimeカテゴリにSRC Mappingが登録されていません"
-						: leaderboardResponse.message,
-					mappings,
-					context.mappingKey,
-					"error",
-					activeMapping,
-				);
-				return;
-			}
-			if (bestsResponse && bestsResponse.status !== "resolved") {
-				this.fail(
-					bestsResponse.status === "unregistered"
-						? "RaceTimeカテゴリにSRC Mappingが登録されていません"
-						: bestsResponse.message,
-					mappings,
-					context.mappingKey,
-					"error",
-					activeMapping,
-				);
-				return;
+			const failures: string[] = [];
+			let leaderboardFailed = false;
+			let leaderboard: SpeedrunLeaderboard | null = null;
+			if (leaderboardOutcome.status === "rejected") {
+				leaderboardFailed = true;
+				failures.push(errorMessage(leaderboardOutcome.reason));
+			} else {
+				const response = leaderboardOutcome.value;
+				if (response.status === "resolved") {
+					leaderboard =
+						response.leaderboards?.find(
+							(candidate) => candidate.mapping.key === activeMapping.key,
+						) ?? null;
+					if (!leaderboard) {
+						leaderboardFailed = true;
+						failures.push("SRC Leaderboardの取得結果が見つかりません");
+					}
+				} else {
+					leaderboardFailed = true;
+					failures.push(
+						response.status === "unregistered"
+							? "RaceTimeカテゴリにSRC Mappingが登録されていません"
+							: response.message,
+					);
+				}
 			}
 
-			const leaderboard =
-				leaderboardResponse.leaderboards?.find(
-					(candidate) => candidate.mapping.key === activeMapping.key,
-				) ?? null;
 			const bests = new Map<string, SpeedrunPlayerBest>();
-			const bestsResult = bestsResponse?.results?.find(
-				(candidate) => candidate.mapping.key === activeMapping.key,
-			);
-			for (const best of bestsResult?.players ?? []) {
-				if (best.playerId) bests.set(best.playerId, best);
+			const bestsResponse =
+				bestsOutcome.status === "fulfilled" ? bestsOutcome.value : null;
+			if (bestsOutcome.status === "rejected") {
+				failures.push(errorMessage(bestsOutcome.reason));
+			} else if (bestsResponse) {
+				if (bestsResponse.status === "resolved") {
+					const bestsResult = bestsResponse.results?.find(
+						(candidate) => candidate.mapping.key === activeMapping.key,
+					);
+					for (const best of bestsResult?.players ?? []) {
+						if (best.playerId) bests.set(best.playerId, best);
+					}
+				} else {
+					failures.push(
+						bestsResponse.status === "unregistered"
+							? "RaceTimeカテゴリにSRC Mappingが登録されていません"
+							: bestsResponse.message,
+					);
+				}
 			}
 
+			if (leaderboard?.state === "error") {
+				failures.push(
+					leaderboard.message ?? "SRC Leaderboardの取得に失敗しました",
+				);
+				if (leaderboard.entries.length === 0) leaderboardFailed = true;
+			} else if (leaderboard?.state === "not_found") {
+				failures.push("SRC Leaderboardに記録がありません");
+			}
+			if ([...bests.values()].some((best) => best.state === "error"))
+				failures.push("一部プレイヤーのPB取得に失敗しました");
+
+			const messages = [
+				...new Set(failures.filter((value) => value.trim() !== "")),
+			];
+			const message = messages.length > 0 ? messages.join(" / ") : null;
 			const stale =
 				Boolean(leaderboard?.stale) || Boolean(bestsResponse?.stale);
 			const fetchedAt =
 				leaderboard?.fetchedAt ??
 				bestsResponse?.fetchedAt ??
 				new Date().toISOString();
-			const leaderboardError = leaderboard?.state === "error";
-			const bestsError = [...bests.values()].some(
-				(best) => best.state === "error",
-			);
-			const message = leaderboardError
-				? (leaderboard?.message ?? "SRC Leaderboardの取得に失敗しました")
-				: bestsError
-					? "一部プレイヤーのPB取得に失敗しました"
-					: leaderboard?.state === "not_found"
-						? "SRC Leaderboardに記録がありません"
-						: null;
-			const state: IntegrationState =
-				leaderboardError && (leaderboard?.entries.length ?? 0) === 0
-					? "error"
-					: "ready";
+			const state: IntegrationState = leaderboardFailed ? "error" : "ready";
 			this.replaceSnapshot({
 				mappings,
 				activeMapping,

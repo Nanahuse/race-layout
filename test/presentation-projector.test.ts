@@ -249,13 +249,14 @@ const records: RecordsSnapshot = {
 	},
 };
 
-const project = () => {
+const projectWithState = (state: RaceState) => {
 	const config = createDefaultBroadcastConfig();
 	config.slots = ["rt-1", "rt-2", null, null, null, null];
+	config.commentatorIds = ["player-1"];
 	return new PresentationProjector().project(
 		{
 			config,
-			raceState,
+			raceState: state,
 			records,
 			getPlayer: (playerId) => players.get(playerId),
 		},
@@ -263,6 +264,8 @@ const project = () => {
 		"2026-01-01T00:00:00Z",
 	);
 };
+
+const project = () => projectWithState(raceState);
 
 describe("PresentationProjector", () => {
 	it("prefers Player Manager display names and builds player bars", () => {
@@ -287,11 +290,26 @@ describe("PresentationProjector", () => {
 		expect(info.eventName).toBe("Test Race");
 		expect(info.categoryName).toBe("Any%");
 		expect(info.raceStatus).toBe("IN PROGRESS");
+		expect(info.commentators).toEqual(["PM One"]);
 		expect(info.record).toEqual({
 			label: "TOP RECORD",
 			time: "0:50.000",
 			holder: "Display Two & SRC Three",
 		});
+	});
+
+	it("ignores participant resolution from an older race revision", () => {
+		const projection = projectWithState({
+			...raceState,
+			raceRevision: raceState.raceRevision + 1,
+		});
+		expect(projection.race.players[0]).toMatchObject({
+			name: "RaceTime One",
+			pb: null,
+			twitch: null,
+			youtube: null,
+		});
+		expect(projection.participants.participants[0]?.name).toBe("RaceTime One");
 	});
 
 	it("lists every participant and preserves SRC places", () => {

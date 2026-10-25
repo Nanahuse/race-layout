@@ -112,6 +112,8 @@ class FakeGateway {
 	bestsCalls = 0;
 	mappingBySlug = new Map<string, ResolvedCategoryMapping[]>();
 	leaderboardQueues = new Map<string, Deferred<LeaderboardResponse>>();
+	leaderboardError: Error | null = null;
+	bestsError: Error | null = null;
 
 	async resolveCategoryMapping(slug: string) {
 		this.resolveCalls++;
@@ -123,6 +125,7 @@ class FakeGateway {
 
 	async getSpeedrunLeaderboards(slug: string) {
 		this.leaderboardCalls++;
+		if (this.leaderboardError) throw this.leaderboardError;
 		const activeMapping = this.mappingBySlug.get(slug)?.[0];
 		if (!activeMapping) return {status: "unregistered" as const};
 		const queued = this.leaderboardQueues.get(slug);
@@ -136,6 +139,7 @@ class FakeGateway {
 
 	async getSpeedrunPlayerBests(slug: string) {
 		this.bestsCalls++;
+		if (this.bestsError) throw this.bestsError;
 		return {
 			status: "resolved" as const,
 			mappings: this.mappingBySlug.get(slug) ?? [],
@@ -170,6 +174,28 @@ describe("RecordsCoordinator", () => {
 		await flush();
 		expect(gateway.resolveCalls).toBe(1);
 		expect(coordinator.getSnapshot().status.state).toBe("ready");
+	});
+
+	it("keeps a successful leaderboard when PB retrieval fails", async () => {
+		const gateway = new FakeGateway();
+		const active = mapping("a");
+		gateway.mappingBySlug.set("slug-a", [active]);
+		gateway.bestsError = new Error("PB lookup failed");
+		const coordinator = new RecordsCoordinator(
+			gateway as unknown as RaceTimeGateway,
+			() => {},
+		);
+		coordinator.request({
+			race: race("race-a", "slug-a"),
+			playerIds: ["player-1"],
+			mappingKey: active.key,
+		});
+		await flush();
+		const snapshot = coordinator.getSnapshot();
+		expect(snapshot.leaderboard?.entries).toHaveLength(1);
+		expect(snapshot.bests.size).toBe(0);
+		expect(snapshot.status.state).toBe("ready");
+		expect(snapshot.status.message).toContain("PB lookup failed");
 	});
 
 	it("does not silently switch when the selected mapping is missing", async () => {

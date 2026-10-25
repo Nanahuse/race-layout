@@ -116,17 +116,20 @@
 
 .player-bar__segment {
 	display: flex;
-	flex-direction: column;
-	align-items: flex-end;
+	flex-direction: row;
+	align-items: baseline;
+	justify-content: flex-end;
+	gap: 8px;
 	min-width: 0;
 	max-width: 100%;
 	animation: player-bar-fade 380ms ease both;
 }
 
 .player-bar__segment-label {
+	flex: 0 0 auto;
 	color: var(--rb-accent);
 	font-weight: 700;
-	letter-spacing: 0.2em;
+	letter-spacing: 0.16em;
 }
 
 .player-bar--four .player-bar__segment-label {
@@ -138,7 +141,7 @@
 }
 
 .player-bar__segment-value {
-	max-width: 100%;
+	min-width: 0;
 	overflow: hidden;
 	white-space: nowrap;
 	text-overflow: ellipsis;
@@ -149,12 +152,10 @@
 
 .player-bar--four .player-bar__segment-value {
 	font-size: 25px;
-	margin-top: 2px;
 }
 
 .player-bar--six .player-bar__segment-value {
 	font-size: 18px;
-	margin-top: 1px;
 }
 
 @keyframes player-bar-fade {

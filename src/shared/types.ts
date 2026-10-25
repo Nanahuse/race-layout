@@ -9,7 +9,7 @@ export type BroadcastConfig = {
 	slots: Array<string | null>;
 	eventName: string;
 	categoryName: string;
-	commentators: string[];
+	commentatorIds: string[];
 	mappingKey: string | null;
 };
 
@@ -118,6 +118,11 @@ export type IntegrationState =
 export type MappingOption = {
 	key: string;
 	label: string;
+};
+
+export type PlayerOption = {
+	playerId: string;
+	displayName: string;
 };
 
 export type WatchedRaceSummary = {

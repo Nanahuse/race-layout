@@ -18,6 +18,8 @@ import {
 	APPLY_CONFIG_MESSAGE,
 	type ApplyConfigRequest,
 	type ApplyConfigResponse,
+	LIST_PLAYERS_MESSAGE,
+	type ListPlayersResponse,
 	PREVIEW_RACE_MESSAGE,
 	type PreviewRaceResponse,
 	RECONNECT_RACE_MESSAGE,
@@ -37,6 +39,7 @@ import type {
 	RacePresentation,
 	ResultPresentation,
 } from "../shared/types";
+import {currentParticipants} from "./current-participants";
 import {RaceTimeGateway} from "./integrations/racetime-gateway";
 import {PlayerManagerAdapter} from "./player-manager-adapter";
 import {PresentationProjector} from "./presentation-projector";
@@ -80,6 +83,7 @@ export class BroadcastController {
 	private statusRevision = 0;
 	private lastProjectionSignature = "";
 	private lastStatusSignature = "";
+	private applyQueue: Promise<void> = Promise.resolve();
 	private stopped = false;
 
 	constructor(private readonly nodecg: NodeCG.ServerAPI) {
@@ -223,6 +227,15 @@ export class BroadcastController {
 					});
 			},
 		);
+		this.nodecg.listenFor(
+			LIST_PLAYERS_MESSAGE,
+			(_data: unknown, ack?: NodeCG.Acknowledgement) => {
+				reply(ack, {
+					ok: true,
+					players: this.playerManager.listPlayers(),
+				} satisfies ListPlayersResponse);
+			},
+		);
 	}
 
 	private async restoreRace(): Promise<void> {
@@ -263,7 +276,19 @@ export class BroadcastController {
 		this.restoreTimer = null;
 	}
 
-	private async applyConfig(
+	private applyConfig(
+		payload: Partial<ApplyConfigRequest> | null | undefined,
+	): Promise<ApplyConfigResponse> {
+		const run = () => this.applyConfigInternal(payload);
+		const result = this.applyQueue.then(run, run);
+		this.applyQueue = result.then(
+			() => undefined,
+			() => undefined,
+		);
+		return result;
+	}
+
+	private async applyConfigInternal(
 		payload: Partial<ApplyConfigRequest> | null | undefined,
 	): Promise<ApplyConfigResponse> {
 		if (
@@ -315,6 +340,17 @@ export class BroadcastController {
 					message: errorText(error),
 				};
 			}
+		}
+
+		if (payload.expectedRevision !== this.config.revision) {
+			if (prepared) await this.subscription.discard(prepared);
+			return {
+				ok: false,
+				code: "revision_conflict",
+				message:
+					"Broadcast configuration was changed elsewhere. Reload before applying.",
+				current: this.config,
+			};
 		}
 
 		const next: BroadcastConfig = {
@@ -457,7 +493,7 @@ export class BroadcastController {
 	private participantPlayerIds(): string[] {
 		return [
 			...new Set(
-				(this.raceState?.participants ?? [])
+				currentParticipants(this.raceState)
 					.map((participant) => participant.playerId)
 					.filter((playerId): playerId is string => Boolean(playerId)),
 			),

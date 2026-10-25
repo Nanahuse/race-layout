@@ -83,6 +83,8 @@ Dashboardの`Broadcast Control`で配信設定を編集します。
 - Presentation: Event、Category、実況者、SRC Mapping
 - Status: RaceTime / Player Manager / SRCの状態確認、記録の再取得、監視の再接続
 
+実況者はPlayer ManagerのPlayer IDで保持し、表示名はPlayer Managerの公開APIから解決します。
+
 編集内容はブラウザ内のDraftとして保持され、**「配信に反映」**を押したときだけ単一の`broadcast-config` Replicantへ保存されます。
 `broadcast-config`はRevisionで競合を検出します。
 
