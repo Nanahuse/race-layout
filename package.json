@@ -1,7 +1,10 @@
 {
-	"name": "nodecg-bundle-template",
-	"version": "1.0.0",
-	"packageManager": "pnpm@12.4.0",
+	"name": "race-layout",
+	"version": "0.1.0",
+	"private": true,
+	"description": "RaceTime RTA race broadcast graphics for NodeCG",
+	"license": "Apache-2.0",
+	"packageManager": "pnpm@12.9.1",
 	"scripts": {
 		"start": "nodecg start",
 		"build": "vite build",
@@ -10,42 +13,57 @@
 		"dev:vite": "vite",
 		"dev:nodecg": "nodecg start",
 		"generate-schema-types": "nodecg schema-types -o ./src/types/generated",
-		"clean": "trash node_modules/.cache && trash dashboard && trash extension",
-		"typecheck": "tsc -p src/browser && tsc -p src/extension",
+		"clean": "trash node_modules/.cache && trash dashboard && trash extension && trash graphics && trash shared",
+		"typecheck": "tsc -p src/browser && tsc -p src/extension && tsc -p tsconfig.test.json",
+		"test": "vitest run",
+		"test:watch": "vitest",
 		"format": "biome check --write",
 		"dev:format": "biome check --write --unsafe"
 	},
 	"nodecg": {
-		"compatibleRange": "^2.5.0",
-		"assetCategories": [
-			{
-				"name": "test",
-				"title": "Test",
-				"allowedTypes": ["jpg", "jpeg", "gif", "png"]
-			}
-		],
+		"compatibleRange": "^2.8.0",
+		"bundleDependencies": {
+			"player-manager": "^3.1.0",
+			"racetime-integration": "^0.8.0"
+		},
 		"dashboardPanels": [
 			{
-				"name": "Example",
-				"title": "Example Dashboard",
-				"width": 2,
-				"file": "Example.html",
-				"workspace": "Example",
-				"headerColor": "#525F78"
+				"name": "broadcast-control",
+				"title": "Broadcast Control",
+				"file": "BroadcastControl.html",
+				"fullbleed": true
 			}
 		],
 		"graphics": [
 			{
-				"file": "Example.html",
+				"file": "race-4.html",
 				"width": 1920,
-				"height": 1080,
-				"singleInstance": true
+				"height": 1080
+			},
+			{
+				"file": "race-6.html",
+				"width": 1920,
+				"height": 1080
+			},
+			{
+				"file": "participants.html",
+				"width": 1920,
+				"height": 1080
+			},
+			{
+				"file": "leaderboard.html",
+				"width": 1920,
+				"height": 1080
+			},
+			{
+				"file": "result.html",
+				"width": 1920,
+				"height": 1080
 			}
 		]
 	},
 	"devDependencies": {
 		"@nodecg/types": "^2.8.0",
-		"@types/obs-studio": "^2.17.2",
 		"@types/react": "^18.3.31",
 		"@types/react-dom": "^18.3.7",
 		"@vitejs/plugin-react": "^6.1.1",
@@ -56,12 +74,13 @@
 		"rollup-plugin-node-externals": "^7.1.3",
 		"trash-cli": "^6.0.0",
 		"typescript": "^5.9.3",
-		"vite": "^8.2.2"
+		"vite": "^8.2.2",
+		"vitest": "^4.1.0"
 	},
 	"dependencies": {
 		"@biomejs/biome": "^2.5.12",
-		"@mdi/react": "^1.6.1",
-		"@nodecg/react-hooks": "^1.0.3",
+		"@nanahuse/player-manager-protocol": "github:Nanahuse/player-manager#v3.1.0&path:/packages/player-manager-protocol",
+		"@nanahuse/racetime-protocol": "github:Nanahuse/racetime-integration#v0.8.0&path:/packages/racetime-protocol",
 		"nodecg": "^2.8.0",
 		"react": "^18.3.1",
 		"react-dom": "^18.3.1",

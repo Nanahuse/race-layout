@@ -1,0 +1,121 @@
+.participant-grid {
+	position: relative;
+	z-index: 1;
+	flex: 1 1 auto;
+	min-height: 0;
+	display: grid;
+	gap: 20px;
+}
+
+.participant-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 16px;
+	min-height: 0;
+	padding: 24px 30px 24px 36px;
+	overflow: hidden;
+	border: 1px solid var(--rb-line-soft);
+	border-left: 5px solid var(--rb-accent);
+	border-radius: 14px;
+	background: linear-gradient(
+		135deg,
+		rgba(19, 34, 51, 0.92) 0%,
+		rgba(9, 17, 28, 0.88) 100%
+	);
+	box-shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
+}
+
+.participant-card::after {
+	content: "";
+	position: absolute;
+	right: -60px;
+	bottom: -80px;
+	width: 220px;
+	height: 220px;
+	border-radius: 50%;
+	background: radial-gradient(
+		circle,
+		rgba(82, 226, 208, 0.09),
+		transparent 68%
+	);
+}
+
+.participant-card__name {
+	position: relative;
+	z-index: 1;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	font-weight: 700;
+	letter-spacing: 0.005em;
+	text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.participant-grid--cols-1 .participant-card__name {
+	font-size: 42px;
+}
+
+.participant-grid--cols-2 .participant-card__name {
+	font-size: 34px;
+}
+
+.participant-grid--cols-3 .participant-card__name {
+	font-size: 27px;
+}
+
+.participant-grid--cols-4 .participant-card__name {
+	font-size: 23px;
+}
+
+.participant-card__stats {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 14px 34px;
+}
+
+.participant-card__stat {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	min-width: 0;
+}
+
+.participant-card__stat-label {
+	color: var(--rb-muted);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.18em;
+}
+
+.participant-card__stat-value {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	color: #ffffff;
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+}
+
+.participant-grid--cols-1 .participant-card__stat-value,
+.participant-grid--cols-2 .participant-card__stat-value {
+	font-size: 24px;
+}
+
+.participant-grid--cols-3 .participant-card__stat-value {
+	font-size: 20px;
+}
+
+.participant-grid--cols-4 .participant-card__stat-value {
+	font-size: 18px;
+}
+
+.participant-card__stat-value--dnf,
+.participant-card__stat-value--dq,
+.participant-card__stat-value--other {
+	color: #f2a09d;
+	letter-spacing: 0.08em;
+}

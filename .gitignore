@@ -3,6 +3,7 @@ node_modules
 /dashboard
 /extension
 /graphics
+/shared
 
 /assets
 /cfg
