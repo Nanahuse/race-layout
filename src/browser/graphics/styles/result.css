@@ -1,0 +1,119 @@
+.result-table {
+	position: relative;
+	z-index: 1;
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	border: 1px solid var(--rb-line-soft);
+	border-radius: 18px;
+	background: rgba(8, 15, 25, 0.72);
+}
+
+.result-table__head {
+	display: grid;
+	grid-template-columns: 170px minmax(0, 1fr) 320px;
+	align-items: center;
+	flex: 0 0 auto;
+	height: 50px;
+	padding: 0 38px;
+	border-bottom: 1px solid var(--rb-line);
+	background: rgba(82, 226, 208, 0.055);
+	color: var(--rb-muted);
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 0.18em;
+}
+
+.result-table__head span:last-child {
+	text-align: right;
+}
+
+.result-table__body {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: grid;
+	grid-auto-rows: 45px;
+	align-content: start;
+}
+
+.result-table--dense .result-table__body {
+	grid-auto-rows: 37px;
+}
+
+.result-row {
+	display: grid;
+	grid-template-columns: 170px minmax(0, 1fr) 320px;
+	align-items: center;
+	padding: 0 38px;
+	border-bottom: 1px solid rgba(160, 190, 210, 0.07);
+	font-variant-numeric: tabular-nums;
+}
+
+.result-row:nth-child(even) {
+	background: rgba(255, 255, 255, 0.018);
+}
+
+.result-row--finished:nth-child(1) {
+	background: linear-gradient(
+		90deg,
+		rgba(242, 198, 109, 0.13),
+		rgba(242, 198, 109, 0.025) 55%,
+		transparent 100%
+	);
+}
+
+.result-row__rank {
+	color: var(--rb-muted);
+	font-size: 28px;
+	font-weight: 800;
+}
+
+.result-row--finished .result-row__rank {
+	color: var(--rb-accent-soft);
+}
+
+.result-row--dnf .result-row__rank,
+.result-row--dnf .result-row__time {
+	color: #f2a09d;
+}
+
+.result-row--dq .result-row__rank,
+.result-row--dq .result-row__time {
+	color: #f2b36d;
+}
+
+.result-row__name {
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	font-size: 27px;
+	font-weight: 600;
+}
+
+.result-row__time {
+	text-align: right;
+	color: #ffffff;
+	font-size: 28px;
+	font-weight: 600;
+	letter-spacing: 0.01em;
+}
+
+.result-row--dnf .result-row__time,
+.result-row--dq .result-row__time,
+.result-row--other .result-row__time {
+	font-size: 23px;
+	font-weight: 800;
+	letter-spacing: 0.14em;
+}
+
+.result-table--dense .result-row__rank,
+.result-table--dense .result-row__time {
+	font-size: 23px;
+}
+
+.result-table--dense .result-row__name {
+	font-size: 23px;
+}

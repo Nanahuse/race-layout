@@ -1,0 +1,126 @@
+.leaderboard-table {
+	position: relative;
+	z-index: 1;
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	border: 1px solid var(--rb-line-soft);
+	border-radius: 18px;
+	background: rgba(8, 15, 25, 0.72);
+}
+
+.leaderboard-table__head {
+	display: grid;
+	grid-template-columns: 150px minmax(0, 1fr) 330px;
+	align-items: center;
+	flex: 0 0 auto;
+	height: 50px;
+	padding: 0 38px;
+	border-bottom: 1px solid var(--rb-line);
+	background: rgba(82, 226, 208, 0.055);
+	color: var(--rb-muted);
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 0.18em;
+}
+
+.leaderboard-table__head span:last-child {
+	text-align: right;
+}
+
+.leaderboard-table__body {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: grid;
+	grid-auto-rows: 44px;
+	align-content: start;
+}
+
+.leaderboard-table--dense .leaderboard-table__body {
+	grid-auto-rows: 35px;
+}
+
+.leaderboard-row {
+	display: grid;
+	grid-template-columns: 150px minmax(0, 1fr) 330px;
+	align-items: center;
+	padding: 0 38px;
+	border-bottom: 1px solid rgba(160, 190, 210, 0.07);
+	font-variant-numeric: tabular-nums;
+}
+
+.leaderboard-row:nth-child(even) {
+	background: rgba(255, 255, 255, 0.018);
+}
+
+.leaderboard-row--podium-1 {
+	background: linear-gradient(
+		90deg,
+		rgba(242, 198, 109, 0.15),
+		rgba(242, 198, 109, 0.03) 55%,
+		transparent 100%
+	);
+}
+
+.leaderboard-row--podium-2 {
+	background: linear-gradient(
+		90deg,
+		rgba(199, 211, 223, 0.12),
+		rgba(199, 211, 223, 0.025) 55%,
+		transparent 100%
+	);
+}
+
+.leaderboard-row--podium-3 {
+	background: linear-gradient(
+		90deg,
+		rgba(215, 154, 99, 0.12),
+		rgba(215, 154, 99, 0.025) 55%,
+		transparent 100%
+	);
+}
+
+.leaderboard-row__place {
+	color: var(--rb-muted);
+	font-size: 27px;
+	font-weight: 800;
+}
+
+.leaderboard-row--podium-1 .leaderboard-row__place {
+	color: var(--rb-gold);
+}
+
+.leaderboard-row--podium-2 .leaderboard-row__place {
+	color: var(--rb-silver);
+}
+
+.leaderboard-row--podium-3 .leaderboard-row__place {
+	color: var(--rb-bronze);
+}
+
+.leaderboard-row__players {
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	font-size: 26px;
+	font-weight: 600;
+}
+
+.leaderboard-row__time {
+	text-align: right;
+	color: #ffffff;
+	font-size: 27px;
+	font-weight: 600;
+}
+
+.leaderboard-table--dense .leaderboard-row__place,
+.leaderboard-table--dense .leaderboard-row__time {
+	font-size: 22px;
+}
+
+.leaderboard-table--dense .leaderboard-row__players {
+	font-size: 22px;
+}

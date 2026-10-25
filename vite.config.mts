@@ -9,7 +9,7 @@ export default defineConfig(() => {
 		plugins: [
 			react(),
 			nodecg({
-				bundleName: "nodecg-bundle-template",
+				bundleName: "nodecg-race-broadcast",
 				graphics: "./src/browser/graphics/views/**/*.tsx",
 				dashboard: "./src/browser/dashboard/views/**/*.tsx",
 				extension: {

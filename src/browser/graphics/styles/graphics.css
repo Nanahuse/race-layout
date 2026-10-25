@@ -1,0 +1,46 @@
+:root {
+	--rb-bg: #080d16;
+	--rb-panel: rgba(10, 17, 28, 0.95);
+	--rb-panel-strong: rgba(13, 24, 38, 0.98);
+	--rb-line: rgba(104, 225, 212, 0.24);
+	--rb-line-soft: rgba(160, 190, 210, 0.16);
+	--rb-accent: #52e2d0;
+	--rb-accent-soft: #8ff2e6;
+	--rb-gold: #f2c66d;
+	--rb-silver: #c7d3df;
+	--rb-bronze: #d79a63;
+	--rb-text: #f3f7fa;
+	--rb-muted: #8ba0b4;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+	width: 1920px;
+	height: 1080px;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	background: transparent;
+}
+
+body {
+	font-family:
+		"Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic",
+		sans-serif;
+	color: var(--rb-text);
+	-webkit-font-smoothing: antialiased;
+	text-rendering: geometricPrecision;
+}
+
+.graphic {
+	position: absolute;
+	inset: 0;
+	width: 1920px;
+	height: 1080px;
+	overflow: hidden;
+}
