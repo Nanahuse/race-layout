@@ -477,6 +477,8 @@ export class BroadcastController {
 	}
 
 	private async reconnectRace(): Promise<ReconnectRaceResponse> {
+		if (this.raceState?.race?.status === "finished")
+			return this.refreshRaceSnapshot();
 		if (!this.config.raceUrl)
 			return {ok: false, message: "No race URL is configured"};
 		try {

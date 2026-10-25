@@ -12,7 +12,9 @@ import {
 	type ApplyConfigResponse,
 	LIST_PLAYERS_MESSAGE,
 	type ListPlayersResponse,
+	RECONNECT_RACE_MESSAGE,
 	REFRESH_RACE_SNAPSHOT_MESSAGE,
+	type ReconnectRaceResponse,
 	type RefreshRaceSnapshotResponse,
 } from "../src/shared/messages";
 import {REPLICANTS} from "../src/shared/replicants";
@@ -630,6 +632,15 @@ describe("BroadcastController", () => {
 			REPLICANTS.resultPresentation,
 		)?.value as ResultPresentation;
 		expect(resultAfterRefresh.results[0]?.time).toBe("1:50.0");
+
+		const reconnectFallback = await invoke<ReconnectRaceResponse>(
+			fake,
+			RECONNECT_RACE_MESSAGE,
+			undefined,
+		);
+		expect(reconnectFallback).toEqual({ok: true});
+		expect(state.fetchCount).toBe(2);
+		expect(fake.watchCalls).toHaveLength(1);
 
 		state.fetchError = new Error("snapshot failed");
 		const failed = await invoke<RefreshRaceSnapshotResponse>(
