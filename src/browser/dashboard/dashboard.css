@@ -444,6 +444,16 @@ textarea {
 	color: var(--dash-error);
 }
 
+.status-note {
+	padding: 9px 11px;
+	border: 1px solid rgba(82, 226, 208, 0.28);
+	border-radius: 8px;
+	background: rgba(82, 226, 208, 0.06);
+	color: var(--dash-accent);
+	font-size: 12px;
+	line-height: 1.45;
+}
+
 .status-actions {
 	display: flex;
 	flex-wrap: wrap;

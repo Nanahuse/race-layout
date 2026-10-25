@@ -150,11 +150,14 @@ export class RaceSubscription {
 		}
 		if (this.missing) return;
 		this.missing = true;
-		this.onRaceChanged({
+		const finished = this.active.state.race?.status === "finished";
+		const state: RaceState = {
 			...this.active.state,
 			connection: "closed",
-			error: "Race watch is no longer available",
-		});
+			error: finished ? null : "Race watch is no longer available",
+		};
+		this.active = {...this.active, state};
+		this.onRaceChanged(state);
 	}
 
 	private async releaseWatch(watchId: string): Promise<void> {

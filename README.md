@@ -81,9 +81,15 @@ Dashboardの`Broadcast Control`で配信設定を編集します。
 - Race: 監視中レースの選択、RaceTime URLの指定
 - Layout: 6スロットへの走者配置、並べ替え、4人/6人プレビュー
 - Presentation: Event、Category、実況者、SRC Mapping
-- Status: RaceTime / Player Manager / SRCの状態確認、記録の再取得、監視の再接続
+- Status: RaceTime / Player Manager / SRCの状態確認、記録の再取得、監視の再接続・完走レースの結果再取得
 
 実況者はPlayer ManagerのPlayer IDで保持し、表示名はPlayer Managerの公開APIから解決します。
+
+### 完走済みレース
+
+完走済みのレースもURLから取得し、4人用・6人用のRace GraphicsやResultにそのまま表示できます。
+レース終了後のWebSocket終了は正常終了として扱い、取得済みデータを維持します。
+完走済みレースの結果更新は`fetchRace`による「結果を再取得」を使用し、SRCのPB・Leaderboard再取得とは独立して操作します。
 
 編集内容はブラウザ内のDraftとして保持され、**「配信に反映」**を押したときだけ単一の`broadcast-config` Replicantへ保存されます。
 `broadcast-config`はRevisionで競合を検出します。

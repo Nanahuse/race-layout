@@ -16,6 +16,7 @@ import {
 	applyBroadcastConfig,
 	listPlayers,
 	reconnectRace,
+	refreshRaceSnapshot,
 	refreshRecords,
 	previewRace as requestPreviewRace,
 } from "../api";
@@ -367,11 +368,32 @@ export const BroadcastControl = () => {
 		}
 	};
 
+	const refreshSnapshot = async () => {
+		setError(null);
+		setMessage(null);
+		try {
+			const response = await refreshRaceSnapshot();
+			if (!response.ok) {
+				setError(response.message);
+				return;
+			}
+			setMessage("レース結果を再取得しました。");
+		} catch (cause) {
+			setError(errorText(cause));
+		}
+	};
+
 	if (!draft || !config) {
 		return <div className='dashboard dashboard--loading'>Loading…</div>;
 	}
 
 	const effectiveMapping = status?.speedrun.mappingLabel;
+	const raceFinished = participants?.raceStatus === "FINISHED";
+	const raceSummary = participants?.raceName
+		? `${participants.raceName}${
+				participants.categoryName ? ` — ${participants.categoryName}` : ""
+			}`
+		: null;
 	const mappingPlaceholder =
 		mappingOptions.length === 0
 			? "Mappingがありません"
@@ -471,6 +493,9 @@ export const BroadcastControl = () => {
 							</button>
 						</div>
 					</label>
+					<p className='field__hint'>
+						完走済みレースもURLから取得して表示できます。
+					</p>
 					{previewError ? (
 						<div className='inline-message inline-message--error'>
 							{previewError}
@@ -480,7 +505,7 @@ export const BroadcastControl = () => {
 						<div className='race-summary'>
 							<strong>{preview.name}</strong>
 							<span>
-								{preview.categoryName} · {preview.status}
+								{preview.categoryName} · {preview.status.toUpperCase()}
 							</span>
 							<span>{preview.entrants.length} entrants</span>
 						</div>
@@ -519,11 +544,20 @@ export const BroadcastControl = () => {
 						message={status?.race.message ?? null}
 						detail={
 							<span>
-								connection: {status?.race.connection ?? "—"}
-								{status?.race.raceId ? ` · ${status.race.raceId}` : ""}
+								{raceFinished
+									? `${raceSummary ?? "Race"} · FINISHED`
+									: `connection: ${status?.race.connection ?? "—"}`}
+								{!raceFinished && status?.race.raceId
+									? ` · ${status.race.raceId}`
+									: ""}
 							</span>
 						}
 					/>
+					{raceFinished ? (
+						<div className='status-note'>
+							レース終了・取得済みデータを表示中。結果をGraphicsに表示できます。
+						</div>
+					) : null}
 					<StatusRow
 						label='Player Manager'
 						state={status?.playerManager.state ?? "idle"}
@@ -554,10 +588,12 @@ export const BroadcastControl = () => {
 						<button
 							type='button'
 							className='button'
-							onClick={() => void reconnect()}
+							onClick={() =>
+								void (raceFinished ? refreshSnapshot() : reconnect())
+							}
 							disabled={!activeUrl}
 						>
-							監視を再接続
+							{raceFinished ? "結果を再取得" : "監視を再接続"}
 						</button>
 					</div>
 					<div className='status-updated'>

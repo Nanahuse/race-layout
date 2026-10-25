@@ -63,6 +63,35 @@ describe("race graphic", () => {
 		expect(markup).not.toContain("P1");
 	});
 
+	it("renders a finished race in four and six player layouts", () => {
+		const presentation = racePresentation();
+		presentation.info.raceStatus = "FINISHED";
+		presentation.players[4] = {
+			userId: "rt-5",
+			name: "Racer 5",
+			pb: null,
+			twitch: null,
+			youtube: null,
+			result: null,
+		};
+		presentation.players[5] = {
+			userId: "rt-6",
+			name: "Racer 6",
+			pb: null,
+			twitch: null,
+			youtube: null,
+			result: null,
+		};
+		setReplicants({[REPLICANTS.racePresentation]: presentation});
+		const four = renderToStaticMarkup(<RaceGraphic variant={4} />);
+		expect(four).toContain("FINISHED");
+		expect(four).toContain("Racer 1");
+		expect(four).not.toContain("Racer 5");
+		const six = renderToStaticMarkup(<RaceGraphic variant={6} />);
+		expect(six).toContain("FINISHED");
+		expect(six).toContain("Racer 6");
+	});
+
 	it("renders six bars for the six-player layout", () => {
 		const presentation = racePresentation();
 		presentation.players[4] = {

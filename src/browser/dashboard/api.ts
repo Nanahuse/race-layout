@@ -8,8 +8,10 @@ import {
 	type PreviewRaceRequest,
 	type PreviewRaceResponse,
 	RECONNECT_RACE_MESSAGE,
+	REFRESH_RACE_SNAPSHOT_MESSAGE,
 	REFRESH_RECORDS_MESSAGE,
 	type ReconnectRaceResponse,
+	type RefreshRaceSnapshotResponse,
 	type RefreshRecordsResponse,
 } from "../../shared/messages";
 
@@ -48,6 +50,13 @@ export const refreshRecords = (): Promise<RefreshRecordsResponse> =>
 export const reconnectRace = (): Promise<ReconnectRaceResponse> =>
 	withTimeout(
 		nodecg.sendMessage<ReconnectRaceResponse>(RECONNECT_RACE_MESSAGE),
+	);
+
+export const refreshRaceSnapshot = (): Promise<RefreshRaceSnapshotResponse> =>
+	withTimeout(
+		nodecg.sendMessage<RefreshRaceSnapshotResponse>(
+			REFRESH_RACE_SNAPSHOT_MESSAGE,
+		),
 	);
 
 export const listPlayers = (): Promise<ListPlayersResponse> =>

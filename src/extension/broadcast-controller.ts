@@ -23,8 +23,10 @@ import {
 	PREVIEW_RACE_MESSAGE,
 	type PreviewRaceResponse,
 	RECONNECT_RACE_MESSAGE,
+	REFRESH_RACE_SNAPSHOT_MESSAGE,
 	REFRESH_RECORDS_MESSAGE,
 	type ReconnectRaceResponse,
+	type RefreshRaceSnapshotResponse,
 	type RefreshRecordsResponse,
 } from "../shared/messages";
 import {REPLICANTS} from "../shared/replicants";
@@ -224,6 +226,21 @@ export class BroadcastController {
 							ok: false,
 							message: errorText(error),
 						} satisfies ReconnectRaceResponse);
+					});
+			},
+		);
+		this.nodecg.listenFor(
+			REFRESH_RACE_SNAPSHOT_MESSAGE,
+			(_data: unknown, ack?: NodeCG.Acknowledgement) => {
+				void this.refreshRaceSnapshot()
+					.then((response) => {
+						reply(ack, response);
+					})
+					.catch((error: unknown) => {
+						reply(ack, {
+							ok: false,
+							message: errorText(error),
+						} satisfies RefreshRaceSnapshotResponse);
 					});
 			},
 		);
@@ -476,6 +493,46 @@ export class BroadcastController {
 		}
 	}
 
+	private async refreshRaceSnapshot(): Promise<RefreshRaceSnapshotResponse> {
+		const current = this.raceState;
+		if (!current?.race)
+			return {ok: false, message: "No race is currently displayed"};
+		if (current.race.status !== "finished")
+			return {
+				ok: false,
+				message: "Reconnect the watch for an in-progress race",
+			};
+		try {
+			const resolved = await this.gateway.fetchRace(current.race.url);
+			if (this.raceState?.race?.url !== current.race.url)
+				return {
+					ok: false,
+					message: "The displayed race changed while refreshing",
+				};
+			const raceRevision = current.raceRevision + 1;
+			const state: RaceState = {
+				revision: current.revision + 1,
+				raceRevision,
+				participantsRevision: current.participantsRevision + 1,
+				resolution: {
+					state: resolved.resolution.state,
+					raceRevision,
+					directoryRevision: resolved.resolution.directoryRevision,
+				},
+				url: resolved.race.url,
+				race: resolved.race,
+				connection: "closed",
+				error: null,
+				participants: resolved.participants,
+			};
+			this.raceRestoreError = null;
+			this.handleRaceState(state);
+			return {ok: true};
+		} catch (error) {
+			return {ok: false, message: errorText(error)};
+		}
+	}
+
 	private handleRaceState(state: RaceState | null): void {
 		this.raceState = state;
 		this.records.request(
@@ -533,24 +590,28 @@ export class BroadcastController {
 		if (this.stopped) return;
 		const snapshot = this.subscription.snapshot();
 		const race = this.raceState?.race ?? null;
+		const finished = race?.status === "finished";
 		let raceState: IntegrationState = "idle";
 		if (this.config.raceUrl) {
 			if (!race) raceState = this.raceRestoreError ? "error" : "loading";
-			else if (snapshot.missing) raceState = "error";
+			else if (snapshot.missing && !finished) raceState = "error";
 			else raceState = "ready";
 		}
 		const recordsStatus = this.records.getSnapshot().status;
 		const status: Omit<BroadcastStatus, "revision" | "updatedAt"> = {
 			race: {
 				state: raceState,
-				url: snapshot.url ?? this.config.raceUrl,
+				url: this.raceState?.url ?? snapshot.url ?? this.config.raceUrl,
 				watchId: snapshot.watchId,
-				connection: snapshot.state?.connection ?? null,
+				connection:
+					this.raceState?.connection ?? snapshot.state?.connection ?? null,
 				raceId: race?.raceId ?? null,
 				message:
 					this.raceRestoreError ??
 					this.raceState?.error ??
-					(snapshot.missing ? "Race watch is no longer available" : null),
+					(snapshot.missing && !finished
+						? "Race watch is no longer available"
+						: null),
 			},
 			playerManager: this.playerManager.getStatus(),
 			speedrun: {

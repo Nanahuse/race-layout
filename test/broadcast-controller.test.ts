@@ -1,18 +1,27 @@
 import type {Player} from "@nanahuse/player-manager-protocol";
 import type {
+	Race,
 	RaceState,
 	ResolvedCategoryMapping,
 } from "@nanahuse/racetime-protocol";
 import {describe, expect, it} from "vitest";
 import {BroadcastController} from "../src/extension/broadcast-controller";
+import {createDefaultBroadcastConfig} from "../src/shared/defaults";
 import {
 	APPLY_CONFIG_MESSAGE,
 	type ApplyConfigResponse,
 	LIST_PLAYERS_MESSAGE,
 	type ListPlayersResponse,
+	REFRESH_RACE_SNAPSHOT_MESSAGE,
+	type RefreshRaceSnapshotResponse,
 } from "../src/shared/messages";
 import {REPLICANTS} from "../src/shared/replicants";
-import type {BroadcastConfig, RacePresentation} from "../src/shared/types";
+import type {
+	BroadcastConfig,
+	BroadcastStatus,
+	RacePresentation,
+	ResultPresentation,
+} from "../src/shared/types";
 
 type Listener = (data: unknown, ack?: unknown) => void;
 
@@ -144,9 +153,67 @@ const mapping: ResolvedCategoryMapping = {
 	},
 };
 
-const raceState = (url: string, watchId: string): RaceState => {
+const raceState = (url: string, finishedTime = "PT1M30S"): RaceState => {
 	const slug = url.split("/").at(-2) ?? "game";
 	const raceSlug = url.split("/").at(-1) ?? "race";
+	const finished = url.includes("finished");
+	const entrants: Race["entrants"] = [
+		{
+			userId: "rt-1",
+			name: "RaceTime One",
+			twitchLogin: "one",
+			status: finished ? "done" : "in_progress",
+			finishTime: finished ? finishedTime : null,
+			finishedAt: finished ? "2026-01-01T00:02:30Z" : null,
+			place: finished ? 1 : null,
+		},
+		{
+			userId: "rt-2",
+			name: "RaceTime Two",
+			twitchLogin: null,
+			status: finished ? "dnf" : "in_progress",
+			finishTime: null,
+			finishedAt: null,
+			place: null,
+		},
+		{
+			userId: "rt-3",
+			name: "RaceTime Three",
+			twitchLogin: null,
+			status: finished ? "dq" : "in_progress",
+			finishTime: null,
+			finishedAt: null,
+			place: null,
+		},
+	];
+	const results: Race["results"] = finished
+		? [
+				{
+					userId: "rt-1",
+					name: "RaceTime One",
+					place: 1,
+					time: finishedTime,
+					finishedAt: "2026-01-01T00:02:30Z",
+					status: "finished",
+				},
+				{
+					userId: "rt-2",
+					name: "RaceTime Two",
+					place: null,
+					time: null,
+					finishedAt: null,
+					status: "dnf",
+				},
+				{
+					userId: "rt-3",
+					name: "RaceTime Three",
+					place: null,
+					time: null,
+					finishedAt: null,
+					status: "dq",
+				},
+			]
+		: [];
 	return {
 		revision: 1,
 		raceRevision: 1,
@@ -157,17 +224,17 @@ const raceState = (url: string, watchId: string): RaceState => {
 			directoryRevision: 1,
 		},
 		url,
-		connection: "connected",
+		connection: finished ? "closed" : "connected",
 		error: null,
 		race: {
 			raceId: `${slug}/${raceSlug}`,
 			url,
 			version: 1,
-			name: `Race ${watchId}`,
-			status: "in_progress",
+			name: finished ? "Finished Race" : "Test Race",
+			status: finished ? "finished" : "in_progress",
 			openedAt: "2026-01-01T00:00:00Z",
 			startedAt: "2026-01-01T00:01:00Z",
-			endedAt: null,
+			endedAt: finished ? "2026-01-01T00:02:30Z" : null,
 			cancelledAt: null,
 			startDelay: "PT1M",
 			timeLimit: "PT1H",
@@ -176,22 +243,12 @@ const raceState = (url: string, watchId: string): RaceState => {
 			recordable: true,
 			recorded: false,
 			timeLimitAutoComplete: true,
-			entrantsCount: 1,
-			entrantsCountFinished: 0,
-			entrantsCountInactive: 0,
+			entrantsCount: entrants.length,
+			entrantsCountFinished: finished ? 1 : 0,
+			entrantsCountInactive: finished ? 2 : 0,
 			category: {slug, name: "Any%", goal: "Beat the game"},
-			entrants: [
-				{
-					userId: "rt-1",
-					name: "RaceTime One",
-					twitchLogin: "one",
-					status: "in_progress",
-					finishTime: null,
-					finishedAt: null,
-					place: null,
-				},
-			],
-			results: [],
+			entrants,
+			results,
 		},
 		participants: [
 			{
@@ -216,6 +273,9 @@ const raceState = (url: string, watchId: string): RaceState => {
 const createFakeNodeCG = () => {
 	const state = {
 		watchCount: 0,
+		fetchCount: 0,
+		finishedTime: "PT1M50S",
+		fetchError: null as Error | null,
 	};
 	let fake: FakeNodeCG;
 	const playerManager = {
@@ -239,6 +299,22 @@ const createFakeNodeCG = () => {
 			request: {url?: string; watchId?: string},
 		) {
 			switch (operation) {
+				case "fetchRace": {
+					state.fetchCount++;
+					if (state.fetchError) throw state.fetchError;
+					const resolved = raceState(request.url ?? "", state.finishedTime);
+					return {
+						ok: true,
+						data: {
+							race: resolved.race,
+							participants: resolved.participants,
+							resolution: {
+								state: "ready" as const,
+								directoryRevision: 1,
+							},
+						},
+					};
+				}
 				case "watchRace": {
 					state.watchCount++;
 					const watchId = `watch-${state.watchCount}`;
@@ -246,7 +322,7 @@ const createFakeNodeCG = () => {
 					fake.watchCalls.push(url);
 					return {
 						ok: true,
-						data: {watchId, state: raceState(url, watchId)},
+						data: {watchId, state: raceState(url)},
 					};
 				}
 				case "unwatchRace":
@@ -340,7 +416,7 @@ const createFakeNodeCG = () => {
 		"player-manager": playerManager,
 		"racetime-integration": racetime,
 	});
-	return fake;
+	return {fake, state};
 };
 
 const flush = async () => {
@@ -383,7 +459,7 @@ const configDraft = (raceUrl: string) => ({
 
 describe("BroadcastController", () => {
 	it("applies configuration, projects presentations and owns its watch", async () => {
-		const fake = createFakeNodeCG();
+		const {fake} = createFakeNodeCG();
 		const controller = new BroadcastController(
 			fake as unknown as ConstructorParameters<typeof BroadcastController>[0],
 		);
@@ -441,7 +517,7 @@ describe("BroadcastController", () => {
 	});
 
 	it("serializes concurrent applies with the same revision", async () => {
-		const fake = createFakeNodeCG();
+		const {fake} = createFakeNodeCG();
 		const controller = new BroadcastController(
 			fake as unknown as ConstructorParameters<typeof BroadcastController>[0],
 		);
@@ -470,7 +546,7 @@ describe("BroadcastController", () => {
 	});
 
 	it("lists Player Manager players for commentator selection", async () => {
-		const fake = createFakeNodeCG();
+		const {fake} = createFakeNodeCG();
 		const controller = new BroadcastController(
 			fake as unknown as ConstructorParameters<typeof BroadcastController>[0],
 		);
@@ -487,8 +563,119 @@ describe("BroadcastController", () => {
 		});
 	});
 
+	it("keeps a finished race displayed after watch release and refreshes it", async () => {
+		const {fake, state} = createFakeNodeCG();
+		const controller = new BroadcastController(
+			fake as unknown as ConstructorParameters<typeof BroadcastController>[0],
+		);
+		await controller.start();
+		await flush();
+		const finishedUrl = "https://racetime.gg/game/finished-race";
+		const applied = await invoke<ApplyConfigResponse>(
+			fake,
+			APPLY_CONFIG_MESSAGE,
+			{
+				expectedRevision: 0,
+				config: configDraft(finishedUrl),
+			},
+		);
+		expect(applied.ok).toBe(true);
+		await flush();
+
+		const resultBefore = fake.get("race-layout", REPLICANTS.resultPresentation)
+			?.value as ResultPresentation;
+		expect(resultBefore.raceStatus).toBe("FINISHED");
+		expect(resultBefore.results[0]).toMatchObject({
+			place: 1,
+			time: "1:30.0",
+			status: "finished",
+		});
+		expect(resultBefore.results[1]).toMatchObject({
+			place: null,
+			time: null,
+			status: "dnf",
+		});
+		expect(resultBefore.results[2]).toMatchObject({
+			place: null,
+			time: null,
+			status: "dq",
+		});
+
+		const races = fake.get("racetime-integration", "racetime-races");
+		expect(races).toBeDefined();
+		if (races) races.value = {schemaVersion: 1, races: []};
+		await flush();
+		const statusAfterRelease = fake.get(
+			"race-layout",
+			REPLICANTS.broadcastStatus,
+		)?.value as BroadcastStatus;
+		expect(statusAfterRelease.race.state).toBe("ready");
+		expect(statusAfterRelease.race.message).toBeNull();
+		const resultAfterRelease = fake.get(
+			"race-layout",
+			REPLICANTS.resultPresentation,
+		)?.value as ResultPresentation;
+		expect(resultAfterRelease.results[0]?.time).toBe("1:30.0");
+
+		const refreshed = await invoke<RefreshRaceSnapshotResponse>(
+			fake,
+			REFRESH_RACE_SNAPSHOT_MESSAGE,
+			undefined,
+		);
+		expect(refreshed).toEqual({ok: true});
+		await flush();
+		expect(state.fetchCount).toBe(1);
+		const resultAfterRefresh = fake.get(
+			"race-layout",
+			REPLICANTS.resultPresentation,
+		)?.value as ResultPresentation;
+		expect(resultAfterRefresh.results[0]?.time).toBe("1:50.0");
+
+		state.fetchError = new Error("snapshot failed");
+		const failed = await invoke<RefreshRaceSnapshotResponse>(
+			fake,
+			REFRESH_RACE_SNAPSHOT_MESSAGE,
+			undefined,
+		);
+		expect(failed).toMatchObject({ok: false});
+		await flush();
+		const resultAfterFailure = fake.get(
+			"race-layout",
+			REPLICANTS.resultPresentation,
+		)?.value as ResultPresentation;
+		expect(resultAfterFailure.results[0]?.time).toBe("1:50.0");
+	});
+
+	it("restores a saved finished race on startup", async () => {
+		const {fake} = createFakeNodeCG();
+		const base = createDefaultBroadcastConfig();
+		const configRep = fake.Replicant<BroadcastConfig>(
+			REPLICANTS.broadcastConfig,
+			{defaultValue: base},
+		);
+		configRep.value = {
+			...base,
+			revision: 1,
+			raceUrl: "https://racetime.gg/game/finished-restore",
+			slots: ["rt-1", null, null, null, null, null],
+			mappingKey: "mapping-1",
+		};
+		const controller = new BroadcastController(
+			fake as unknown as ConstructorParameters<typeof BroadcastController>[0],
+		);
+		await controller.start();
+		await flush();
+		const presentation = fake.get("race-layout", REPLICANTS.resultPresentation)
+			?.value as ResultPresentation;
+		expect(presentation.raceStatus).toBe("FINISHED");
+		expect(presentation.results[0]?.time).toBe("1:30.0");
+		expect(fake.watchCalls).toContain(
+			"https://racetime.gg/game/finished-restore",
+		);
+	});
+
 	it("does not replace the saved race when the new watch fails", async () => {
-		const fake = createFakeNodeCG();
+		const {fake} = createFakeNodeCG();
 		const racetime = fake.extensions["racetime-integration"] as {
 			request: (operation: string, request: unknown) => Promise<unknown>;
 		};
